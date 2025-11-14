@@ -9,33 +9,30 @@ import os
 # -----------------------------------
 # Streamlit page setup
 # -----------------------------------
-st.set_page_config(page_title="🐗 Boar Semen Analysis Dashboard", layout="wide")
+st.set_page_config(page_title="🐗RM AIC Boar Semen Analysis Dashboard", layout="wide")
 st.title("🐗 Weekly Automated Boar Semen Analysis Dashboard")
 
 st.markdown("""
 This dashboard lets you upload weekly semen data, calculate averages, 
-compare breeds, view all graphs, and adjust views in real time.
+compare breeds, view all graphs, and adjust views in real time                         developer_LAA
 """)
 
 # -----------------------------------
-# File upload section with default
+# File upload section with Google Drive fallback
 # -----------------------------------
+google_drive_url = "https://drive.google.com/uc?id=YOUR_FILE_ID"  # replace with your file's ID
 
-# Google Drive file URL (replace with your actual file ID)
-# Example: "https://drive.google.com/uc?export=download&id=FILE_ID"
-default_file_url = "YOUR_GOOGLE_DRIVE_FILE_URL_HERE"
-
-uploaded = st.file_uploader("📤 Upload your Excel file", type=["xlsx"])
+uploaded = st.file_uploader("📤 Upload your Excel file (optional)", type=["xlsx"])
 
 if uploaded:
     df = pd.read_excel(uploaded)
     st.success(f"✅ File uploaded successfully: {uploaded.name}")
 else:
     try:
-        df = pd.read_excel(default_file_url)
-        st.info("Using default data from Google Drive")
-    except Exception:
-        st.info("👈 Please upload your weekly Excel file to start the analysis.")
+        df = pd.read_excel(google_drive_url)
+        st.info("📄 Using default data from Google Drive")
+    except Exception as e:
+        st.error("⚠️ Could not load default data. Please upload a file.")
         st.stop()
 
 # -----------------------------------
@@ -133,6 +130,7 @@ st.pyplot(fig)
 # -----------------------------------
 st.subheader("📈 Visualizations")
 
+# Define colors and legend labels
 breed_colors = {2: 'blue', 3: 'yellow', 800: 'green'}
 
 if chart_type == "Bar Chart":
@@ -150,18 +148,23 @@ if chart_type == "Bar Chart":
     plt.xlabel("Breed")
     for container in ax.containers:
         ax.bar_label(container, fmt='%.2f')
+    # Fix legend labels
     handles, _ = ax.get_legend_handles_labels()
     ax.legend(handles, [legend_labels.get(int(h.get_label()), h.get_label()) for h in handles], title="Breed")
     st.pyplot(fig)
 
 elif chart_type == "Trend Line":
+    # Select columns related to the chosen metric
     value_cols = [col for col in df.columns if metric.split('_')[1] in col]
+
+    # Melt the filtered DataFrame safely
     melted = df_filtered.melt(
         id_vars=["Boar No", "Breed"], 
         value_vars=value_cols,
         var_name="Collection", 
         value_name="Value"
     )
+
     fig, ax = plt.subplots(figsize=(10, 6))
     sns.lineplot(
         data=melted, 
@@ -175,6 +178,7 @@ elif chart_type == "Trend Line":
     plt.title(f"{metric} Trend Across Collections per Breed")
     plt.ylabel(metric)
     plt.xlabel("Collection Number")
+    # Fix legend labels
     handles, _ = ax.get_legend_handles_labels()
     ax.legend(handles, [legend_labels.get(int(h.get_label()), h.get_label()) for h in handles], title="Breed")
     st.pyplot(fig)
